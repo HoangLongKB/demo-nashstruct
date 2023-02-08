@@ -1,7 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next';
 import * as fs from 'fs/promises';
-import { log } from 'console';
+import path from 'path';
+
 const nodemailer = require('nodemailer');
 
 type Data = {
@@ -38,7 +39,7 @@ export default async function handler(
     // Process a POST request
     const data = req.body;
     console.log('==> data', data);
-    
+
     let transporter = nodemailer.createTransport(mailConfig);
     const customerEmail = data.email;
     const customerMessage = data.message;
@@ -72,10 +73,14 @@ const getEmailTemplate = async (
   customerInfo: CustomerInfo,
 ): Promise<EmailTemplate> => {
   try {
-    const rawAdminTemplate =
-      (await fs.readFile(process.env.BASE_URL + '/email-template/admin.txt', 'utf8')) || '';
-    const rawCustomerTemplate =
-      (await fs.readFile(process.env.BASE_URL + '/email-template/customer.txt', 'utf8')) || '';
+    const adminFile = path.join(process.cwd(), 'email-template', 'admin.txt');
+    const customerFile = path.join(
+      process.cwd(),
+      'email-template',
+      'customer.txt',
+    );
+    const rawAdminTemplate = (await fs.readFile(adminFile, 'utf8')) || '';
+    const rawCustomerTemplate = (await fs.readFile(customerFile, 'utf8')) || '';
     const adminTemplate = rawAdminTemplate
       .replace('%EMAIL%', customerInfo.email)
       .replace('%MESSAGE%', customerInfo.message);
