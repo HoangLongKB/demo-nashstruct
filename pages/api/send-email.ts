@@ -58,7 +58,7 @@ export default async function handler(
     await transporter.sendMail({
       from: customerEmail,
       to: adminEmail,
-      subject: customerMessage ? customerMessage : 'New Message From Website ✔',
+      subject: 'New Message From Website ✔',
       text: adminTemplate,
     });
     res.status(200).json({ message: 'Send Email Success!' });
