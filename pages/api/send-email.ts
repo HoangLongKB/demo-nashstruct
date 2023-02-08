@@ -73,9 +73,9 @@ const getEmailTemplate = async (
 ): Promise<EmailTemplate> => {
   try {
     const rawAdminTemplate =
-      (await fs.readFile('email-template/admin.txt', 'utf8')) || '';
+      (await fs.readFile(process.env.BASE_URL + '/email-template/admin.txt', 'utf8')) || '';
     const rawCustomerTemplate =
-      (await fs.readFile('email-template/customer.txt', 'utf8')) || '';
+      (await fs.readFile(process.env.BASE_URL + '/email-template/customer.txt', 'utf8')) || '';
     const adminTemplate = rawAdminTemplate
       .replace('%EMAIL%', customerInfo.email)
       .replace('%MESSAGE%', customerInfo.message);
