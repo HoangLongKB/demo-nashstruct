@@ -1,0 +1,7 @@
+New Message From Website
+
+The following information was submitted:
+
+Email: %EMAIL%
+Message:
+%MESSAGE%
