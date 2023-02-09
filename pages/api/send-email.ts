@@ -6,6 +6,7 @@ import path from 'path';
 const nodemailer = require('nodemailer');
 
 type Data = {
+  success: boolean;
   message: string;
 };
 
@@ -35,38 +36,53 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>,
 ) {
-  if (req.method === 'POST') {
-    // Process a POST request
-    const data = req.body;
-    console.log('==> data', data);
-
-    let transporter = nodemailer.createTransport(mailConfig);
-    const customerEmail = data.email;
-    const customerMessage = data.message;
-    const customerInfo: CustomerInfo = {
-      email: customerEmail,
-      message: customerMessage,
-    };
-    console.log(adminEmail, customerEmail);
-    const { adminTemplate, customerTemplate }: EmailTemplate =
-      await getEmailTemplate(customerInfo);
-    await transporter.sendMail({
-      from: adminEmail,
-      to: customerEmail,
-      subject: 'Message Received ✔',
-      text: customerTemplate, //
-    });
-    await transporter.sendMail({
-      from: customerEmail,
-      to: adminEmail,
-      subject: 'New Message From Website ✔',
-      text: adminTemplate,
-    });
-    res.status(200).json({ message: 'Send Email Success!' });
-  } else {
-    // Handle any other HTTP method
-    res.status(502).json({ message: 'Send Email Fail!' });
+  if (req.method !== 'POST') {
+    res.status(405);
   }
+  // Process a POST request
+  const data = req.body;
+
+  let transporter = nodemailer.createTransport(mailConfig);
+  const customerEmail = data.email;
+  const customerMessage = data.message;
+  const customerInfo: CustomerInfo = {
+    email: customerEmail,
+    message: customerMessage,
+  };
+
+  const captchaToken = data.captchaToken;
+  const verifyCaptchaResp = await fetch(
+    'https://www.google.com/recaptcha/api/siteverify',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${captchaToken}`,
+    },
+  );
+  const verifyCaptchaData: any = await verifyCaptchaResp.json();
+  if (verifyCaptchaData?.score < 0.5 || !verifyCaptchaData?.success) {
+    console.log('recaptcha data', verifyCaptchaData);
+    res.status(502).json({ success: false, message: 'Send Email Fail!' });
+  }
+  console.log('recaptcha data', verifyCaptchaData);
+
+  const { adminTemplate, customerTemplate }: EmailTemplate =
+    await getEmailTemplate(customerInfo);
+  await transporter.sendMail({
+    from: adminEmail,
+    to: customerEmail,
+    subject: 'Message Received ✔',
+    text: customerTemplate, //
+  });
+  await transporter.sendMail({
+    from: customerEmail,
+    to: adminEmail,
+    subject: 'New Message From Website ✔',
+    text: adminTemplate,
+  });
+  res.status(200).json({ success: true, message: 'Send Email Success!' });
 }
 
 const getEmailTemplate = async (

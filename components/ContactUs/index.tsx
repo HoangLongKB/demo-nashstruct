@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 interface FormData {
   email: string;
@@ -9,6 +10,8 @@ interface FormData {
 const ContactUs: React.FC = () => {
   const [sendSuccess, setSendSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
   const {
     register,
     handleSubmit,
@@ -16,38 +19,42 @@ const ContactUs: React.FC = () => {
   } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
+    if (!executeRecaptcha) {
+      console.log('Execute recaptcha not yet available', executeRecaptcha);
+      return;
+    }
+
+    const gReCaptchaToken = await executeRecaptcha('enquiryFormSubmit');
     console.log('form data', data);
     setLoading(true);
-    await sendEmail(data);
+    await sendEmail(data, gReCaptchaToken);
     setLoading(false);
   };
 
-  const sendEmail = async (data: FormData) => {
-  const { email, message } = data;
+  const sendEmail = async (data: FormData, captchaToken: string) => {
+    const { email, message } = data;
 
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, message })
+      body: JSON.stringify({ email, message, captchaToken}),
     });
 
     if (response.ok) {
       console.log('Email sent successfully');
       setSendSuccess(true);
-      
     } else {
       console.log('Error sending email');
       setSendSuccess(false);
-    }    
-
+    }
   };
 
   if (loading) {
     return (
-          <div className="bg-orange-300 p-4 text-orange-800 text-center">
-          Sending...
-        </div>
-    )
+      <div className="bg-orange-300 p-4 text-orange-800 text-center">
+        Sending...
+      </div>
+    );
   }
 
   return (
